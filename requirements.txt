@@ -1,0 +1,6 @@
+torch
+transformers
+sounddevice
+SpeechRecognition
+numpy
+TTS_ka
