@@ -3,6 +3,7 @@ transformers
 sentencepiece
 protobuf
 sounddevice
+pyaudio
 SpeechRecognition
 numpy
 TTS_ka

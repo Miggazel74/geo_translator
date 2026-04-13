@@ -1,4 +1,6 @@
 import os
+import sys
+import subprocess
 import queue
 import sounddevice as sd
 import numpy as np
@@ -18,13 +20,13 @@ def translate_text(text, src_lang, tgt_lang):
     # Коды языков: rus_Cyrl (Русский), kat_Geor (Грузинский)
     nllb_tokenizer.src_lang = src_lang
     inputs = nllb_tokenizer(text, return_tensors="pt")
-    forced_bos_token_id = nllb_tokenizer.lang_code_to_id[tgt_lang]
+    forced_bos_token_id = nllb_tokenizer.convert_tokens_to_ids(tgt_lang)
     translated_tokens = nllb_model.generate(**inputs, forced_bos_token_id=forced_bos_token_id, max_length=400)
     return nllb_tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
 
-print("=== [2/3] Загрузка распознавания речи Whisper (tiny)... ===")
-# При первом запуске скачает модель (~150 МБ)
-stt_model_id = "openai/whisper-tiny"
+print("=== [2/3] Загрузка распознавания речи Whisper (small)... ===")
+# Модель small (~960 МБ) обеспечивает лучшее соотношение максимальной точности и приемлемой скорости для телефона
+stt_model_id = "openai/whisper-small"
 processor = WhisperProcessor.from_pretrained(stt_model_id)
 stt_model = WhisperForConditionalGeneration.from_pretrained(stt_model_id)
 stt_model.config.forced_decoder_ids = None
@@ -41,7 +43,7 @@ print("=== [3/3] Подготовка синтезатора TTS_ka... ===")
 def speak_georgian(text):
     print(f"\n[🔊 ОЗВУЧИВАНИЕ ГРУЗИНСКОГО]: {text}")
     # Библиотека TTS_ka скачивает свою модель автоматически и говорит
-    os.system(f"python3 -m TTS_ka \"{text}\" --lang ka")
+    subprocess.run([sys.executable, "-m", "TTS_ka", text, "--lang", "ka"])
 
 # ==================== ЛОГИКА РАБОТЫ ====================
 r = sr.Recognizer()
