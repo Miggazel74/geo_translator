@@ -2,7 +2,7 @@ import os
 import queue
 import sounddevice as sd
 import numpy as np
-from transformers import pipeline, WhisperProcessor, WhisperForConditionalGeneration
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, WhisperProcessor, WhisperForConditionalGeneration
 import speech_recognition as sr
 import warnings
 
@@ -11,16 +11,16 @@ warnings.filterwarnings("ignore")
 # ==================== НАСТРОЙКИ НЕЙРОСЕТЕЙ ====================
 print("=== [1/3] Загрузка переводчика NLLB-200... ===")
 # NLLB-200 для перевода. При первом запуске скачает ~1.2 Гб, потом будет работать офлайн
-translator = pipeline(
-    "translation", 
-    model="facebook/nllb-200-distilled-600M",
-    device=-1 # -1 = CPU
-)
+nllb_tokenizer = AutoTokenizer.from_pretrained("facebook/nllb-200-distilled-600M")
+nllb_model = AutoModelForSeq2SeqLM.from_pretrained("facebook/nllb-200-distilled-600M")
 
 def translate_text(text, src_lang, tgt_lang):
     # Коды языков: rus_Cyrl (Русский), kat_Geor (Грузинский)
-    result = translator(text, src_lang=src_lang, tgt_lang=tgt_lang, max_length=400)
-    return result[0]['translation_text']
+    nllb_tokenizer.src_lang = src_lang
+    inputs = nllb_tokenizer(text, return_tensors="pt")
+    forced_bos_token_id = nllb_tokenizer.lang_code_to_id[tgt_lang]
+    translated_tokens = nllb_model.generate(**inputs, forced_bos_token_id=forced_bos_token_id, max_length=400)
+    return nllb_tokenizer.batch_decode(translated_tokens, skip_special_tokens=True)[0]
 
 print("=== [2/3] Загрузка распознавания речи Whisper (tiny)... ===")
 # При первом запуске скачает модель (~150 МБ)
