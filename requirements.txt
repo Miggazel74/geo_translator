@@ -1,5 +1,7 @@
 torch
 transformers
+sentencepiece
+protobuf
 sounddevice
 SpeechRecognition
 numpy
