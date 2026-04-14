@@ -41,7 +41,7 @@ def transcribe_audio(audio_data, language="ru"):
 
 print("=== [3/3] Подготовка синтезатора TTS_ka... ===")
 def speak_georgian(text):
-    print(f"\n[🔊 ОЗВУЧИВАНИЕ ГРУЗИНСКОГО]: {text}")
+    print(f"\n[ОЗВУЧИВАНИЕ ГРУЗИНСКОГО]: {text}")
     # Библиотека TTS_ka скачивает свою модель автоматически и говорит
     subprocess.run([sys.executable, "-m", "TTS_ka", text, "--lang", "ka"])
 
@@ -49,13 +49,14 @@ def speak_georgian(text):
 r = sr.Recognizer()
 
 def listen_and_process(microphone, source_lang="ru", target_lang="ka"):
-    print(f"\n[{'🔴 ГОВОРИТЕ (Русский)' if source_lang == 'ru' else '🔴 ГОВОРИТЕ (Грузинский)'}] Слушаю...")
+    print(f"\n[{'ГОВОРИТЕ (Русский)' if source_lang == 'ru' else 'ГОВОРИТЕ (Грузинский)'}] Слушаю...")
     
     try:
         with microphone as source:
-            r.adjust_for_ambient_noise(source, duration=0.5)
+            print("[Калибровка микрофона...]")
+            r.adjust_for_ambient_noise(source, duration=2.0)
             # Слушаем максимум 10 секунд
-            audio = r.listen(source, phrase_time_limit=10, timeout=10) 
+            audio = r.listen(source, phrase_time_limit=10, timeout=12) 
     except sr.WaitTimeoutError:
         print("[Ничего не было сказано]")
         return
@@ -83,8 +84,16 @@ def listen_and_process(microphone, source_lang="ru", target_lang="ka"):
         speak_georgian(translated_text)
 
 def main():
-    mic = sr.Microphone(sample_rate=16000)
-    
+    try:
+        mic = sr.Microphone(sample_rate=16000)
+    except Exception as e:
+        print(f"\n[ОШИБКА МИКРОФОНА]: Не удалось подключиться к микрофону.")
+        print(f"Детали ошибки: {e}")
+        print("Если вы в Termux (Android):")
+        print("1. Убедитесь, что выдали приложению Termux разрешение на 'Микрофон' в настройках телефона.")
+        print("2. Убедитесь, что запущен PulseAudio сервер в Termux.")
+        return
+
     print("\n" + "="*40)
     print("УМНЫЙ ОФЛАЙН-ПЕРЕВОДЧИК ГОТОВ!")
     print("="*40)
