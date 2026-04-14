@@ -46,24 +46,27 @@ def speak_georgian(text):
     subprocess.run([sys.executable, "-m", "TTS_ka", text, "--lang", "ka"])
 
 # ==================== ЛОГИКА РАБОТЫ ====================
-r = sr.Recognizer()
-
-def listen_and_process(microphone, source_lang="ru", target_lang="ka"):
-    print(f"\n[{'ГОВОРИТЕ (Русский)' if source_lang == 'ru' else 'ГОВОРИТЕ (Грузинский)'}] Слушаю...")
+def listen_and_process(source_lang="ru", target_lang="ka"):
+    duration = 5  # Записываем 5 секунд ровно
+    print(f"\n[{'ГОВОРИТЕ (Русский)' if source_lang == 'ru' else 'ГОВОРИТЕ (Грузинский)'}] Слушаю {duration} секунд...")
     
     try:
-        with microphone as source:
-            print("[Калибровка микрофона...]")
-            r.adjust_for_ambient_noise(source, duration=2.0)
-            # Слушаем максимум 10 секунд
-            audio = r.listen(source, phrase_time_limit=10, timeout=12) 
-    except sr.WaitTimeoutError:
-        print("[Ничего не было сказано]")
+        # Запись звука напрямую без умных пауз
+        record_data = sd.rec(int(duration * 16000), samplerate=16000, channels=1, dtype='float32')
+        sd.wait()
+        audio_data = record_data.flatten()
+        
+        # Проверка на то, передал ли Android вообще громкость
+        volume = np.abs(audio_data).mean()
+        if volume < 0.0001:
+            print("[ВНИМАНИЕ]: Микрофон записал абсолютную тишину. Пpoвepьтe громкость и разрешения в Android.")
+            return
+
+    except Exception as e:
+        print(f"[ОШИБКА ЗАПИСИ]: {e}")
         return
         
     print("[Обработка звука...]")
-    # Конвертируем звук во Float массив для Whisper
-    audio_data = np.frombuffer(audio.get_raw_data(), np.int16).astype(np.float32) / 32768.0
     
     # 1. Распознавание (Голос -> Текст)
     recognized_text = transcribe_audio(audio_data, language=source_lang)
@@ -84,16 +87,6 @@ def listen_and_process(microphone, source_lang="ru", target_lang="ka"):
         speak_georgian(translated_text)
 
 def main():
-    try:
-        mic = sr.Microphone(sample_rate=16000)
-    except Exception as e:
-        print(f"\n[ОШИБКА МИКРОФОНА]: Не удалось подключиться к микрофону.")
-        print(f"Детали ошибки: {e}")
-        print("Если вы в Termux (Android):")
-        print("1. Убедитесь, что выдали приложению Termux разрешение на 'Микрофон' в настройках телефона.")
-        print("2. Убедитесь, что запущен PulseAudio сервер в Termux.")
-        return
-
     print("\n" + "="*40)
     print("УМНЫЙ ОФЛАЙН-ПЕРЕВОДЧИК ГОТОВ!")
     print("="*40)
@@ -103,9 +96,9 @@ def main():
             mode = input("\nВыберите действие (1 - Сказать на русском, 2 - Послушать грузинский, 0 - Выход): ").strip()
             
             if mode == '1':
-                listen_and_process(mic, source_lang="ru", target_lang="ka")
+                listen_and_process(source_lang="ru", target_lang="ka")
             elif mode == '2':
-                listen_and_process(mic, source_lang="ka", target_lang="ru")
+                listen_and_process(source_lang="ka", target_lang="ru")
             elif mode == '0':
                 print("Завершение работы.")
                 break
