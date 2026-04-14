@@ -2,8 +2,7 @@ torch
 transformers
 sentencepiece
 protobuf
-sounddevice
-pyaudio
-SpeechRecognition
+soundfile
+scipy
 numpy
 TTS_ka
